@@ -41,15 +41,7 @@ func (q *Queue) WriteContext(ctx context.Context, topic Topic, msgs ...[]byte) e
 	return nil
 }
 
-func (q *Queue) ReadContext(ctx context.Context, clientID string, topic Topic, limit int) ([]Message, error) {
-	msgs, err := q.store.FetchNextContext(ctx, clientID, topic, limit)
-	if err != nil {
-		return nil, fmt.Errorf("store.fetchnext: %w", err)
-	}
-	return msgs, nil
-}
-
-func (q *Queue) ReadWaitContext(ctx context.Context, clientID string, topic Topic, limit int, wait time.Duration) ([]Message, error) {
+func (q *Queue) ReadContext(ctx context.Context, clientID string, topic Topic, limit int, wait time.Duration) ([]Message, error) {
 	msgs, err := q.store.FetchNextContext(ctx, clientID, topic, limit)
 	if err != nil {
 		return nil, fmt.Errorf("store.fetchnext: %w", err)
@@ -61,7 +53,7 @@ func (q *Queue) ReadWaitContext(ctx context.Context, clientID string, topic Topi
 		return msgs, nil
 	}
 	// read again without timeout
-	return q.ReadContext(ctx, clientID, topic, limit)
+	return q.ReadContext(ctx, clientID, topic, limit, 0)
 }
 
 func (q *Queue) CommitContext(ctx context.Context, clientID string, topic Topic, idx int) error {
