@@ -6,20 +6,20 @@ import (
 	"time"
 )
 
-type topicSignal map[chan struct{}]struct{}
+type topicSignals map[chan struct{}]struct{}
 
-func newSignal() *signal {
-	return &signal{
-		subs: make(map[Topic]topicSignal),
+func newSignals() *signals {
+	return &signals{
+		subs: make(map[Topic]topicSignals),
 	}
 }
 
-type signal struct {
+type signals struct {
 	sync.RWMutex
-	subs map[Topic]topicSignal
+	subs map[Topic]topicSignals
 }
 
-func (s *signal) emit(topic Topic) {
+func (s *signals) emit(topic Topic) {
 	s.Lock()
 	defer s.Unlock()
 	for c := range s.subs[topic] {
@@ -28,20 +28,21 @@ func (s *signal) emit(topic Topic) {
 	delete(s.subs, topic)
 }
 
-func (s *signal) subscribe(topic Topic) chan struct{} {
+func (s *signals) subscribe(topic Topic) chan struct{} {
 	s.Lock()
 	defer s.Unlock()
 	c := make(chan struct{})
 	if _, ok := s.subs[topic]; !ok {
-		s.subs[topic] = make(topicSignal)
+		s.subs[topic] = make(topicSignals)
 	}
 	s.subs[topic][c] = struct{}{}
 	return c
 }
 
-func (s *signal) unsubscribe(topic Topic, c chan struct{}) {
+func (s *signals) unsubscribe(topic Topic, c chan struct{}) {
 	s.Lock()
 	defer s.Unlock()
+	defer close(c)
 	cs, ok := s.subs[topic]
 	if !ok {
 		return
@@ -49,14 +50,15 @@ func (s *signal) unsubscribe(topic Topic, c chan struct{}) {
 	delete(cs, c)
 }
 
-func (s *signal) waitContext(ctx context.Context, topic Topic, timeout time.Duration) bool {
+func (s *signals) waitContext(ctx context.Context, topic Topic, timeout time.Duration) bool {
 	c := s.subscribe(topic)
-	defer s.unsubscribe(topic, c)
 	timer := time.NewTimer(timeout)
 	select {
 	case <-ctx.Done():
+		s.unsubscribe(topic, c)
 		return false
 	case <-timer.C:
+		s.unsubscribe(topic, c)
 		return false
 	case <-c:
 		return true

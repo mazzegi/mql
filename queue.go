@@ -23,16 +23,19 @@ type Store interface {
 func NewQueue(store Store) *Queue {
 	return &Queue{
 		store: store,
-		sig:   newSignal(),
+		sig:   newSignals(),
 	}
 }
 
 type Queue struct {
 	store Store
-	sig   *signal
+	sig   *signals
 }
 
 func (q *Queue) WriteContext(ctx context.Context, topic Topic, msgs ...[]byte) error {
+	if len(msgs) == 0 {
+		return nil
+	}
 	err := q.store.AppendContext(ctx, topic, msgs...)
 	if err != nil {
 		return fmt.Errorf("store.append: %w", err)

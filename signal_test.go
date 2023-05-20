@@ -10,7 +10,7 @@ func TestSignal(t *testing.T) {
 	var topic1 Topic = "topic_1"
 	var topic2 Topic = "topic_2"
 
-	sig := newSignal()
+	sig := newSignals()
 	emitAfter := func(t Topic, dur time.Duration) {
 		time.AfterFunc(dur, func() { sig.emit(t) })
 	}
