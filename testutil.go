@@ -8,6 +8,14 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+func PanicOnErr(err error, format string, args ...any) {
+	if err == nil {
+		return
+	}
+	msg := fmt.Sprintf(format, args...)
+	panic(fmt.Errorf("%s: error is not-nil but: %v", msg, err))
+}
+
 func AssertNoErr(t *testing.T, err error, format string, args ...any) {
 	if err == nil {
 		return
